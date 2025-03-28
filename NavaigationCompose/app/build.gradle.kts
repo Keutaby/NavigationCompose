@@ -63,4 +63,16 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //Librerias para Retrofit
+    val version_retrofit = "2.9.0"
+    implementation("com.squareup.retrofit2:retrofit:${version_retrofit}") //Este se va a encargar de hacer las peticiones HTTP
+    implementation("com.squareup.retrofit2:converter-gson:${version_retrofit}") //Este convierte de JSON a objetos de kotlin
+
+    //Corutinas, libreria para usar programacion asincrona
+    val version_corutinas = "1.5.1"
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${version_corutinas}")
+
+    //Libreria para checar la infomacion en tiempo real
+    implementation("androidx.compose.runtime:runtime-livedata:1.7.8")
 }
