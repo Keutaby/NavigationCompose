@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.clon_fulanito.ui.pantallas.PantallaNavegadora
+import com.example.clon_fulanito.ui.pantallas.navegacion.MenuPrincipal
 import com.example.clon_fulanito.ui.theme.Clon_fulanitoTheme
 import com.example.clon_fulanito.vista_moddelos.FulanitoViewModel
 
@@ -33,10 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Clon_fulanitoTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    //PantallaDePublicaciones(modifier = Modifier.padding(innerPadding),vm_fulanito = modelo_app)
-                    PantallaNavegadora(Modifier.padding(innerPadding), vm_fulanito = modelo_app)
-                }
+                MenuPrincipal(modifier = Modifier.fillMaxSize())
             }
         }
     }
@@ -48,6 +46,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GreetingPreview() {
     Clon_fulanitoTheme {
-        //Greeting("Android")
+        Clon_fulanitoTheme {
+            MenuPrincipal(Modifier.fillMaxSize())
+        }
     }
 }

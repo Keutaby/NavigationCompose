@@ -1,5 +1,7 @@
 package com.example.clon_fulanito.ui.pantallas.principales
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.clon_fulanito.vista_moddelos.FulanitoViewModel
 
@@ -37,12 +40,14 @@ fun PantallaDePublicaciones(modifier: Modifier, vm_fulanito: FulanitoViewModel, 
         else{
             LazyColumn(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier.fillMaxSize()){ //helps scroll
                 items(publicaciones_descargadas){ publicacion ->
-                    Button(onClick = {
+                    //Cuando se usa el .clickable de modifier, debe se el ultimo en la cadena dde Modifie
+                    Column(modifier = Modifier.clickable {
                         vm_fulanito.seleccionar_publicacion(publicacion.id)
-                        }, modifier = Modifier.fillMaxWidth(0.8f).padding(18.dp)){
+                        navegar_siguiente()
+                    }.padding(15.dp)){
                         Text("Titulo: ${publicacion.title}")
-                    //Text("Publicacion: ${publicacion.body}")
-                    //HorizontalDivider()
+                        Text("Publicacion: ${publicacion.body}")
+                        HorizontalDivider()
                     }
 
                 }

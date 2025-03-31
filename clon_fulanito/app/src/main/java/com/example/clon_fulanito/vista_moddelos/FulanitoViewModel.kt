@@ -52,6 +52,10 @@ class FulanitoViewModel: ViewModel(){
     }
 
     fun seleccionar_publicacion(id: Int): Boolean{
+        if(publicaciones.value == null){
+            Log.v("VAMOOOOOOSSSS", "que aqui parece esyar el error")
+            return false
+        }
         for(publicacion in publicaciones.value!!){
             if(publicacion.id == id){
                 _publicacion_seleccionada.value = publicacion

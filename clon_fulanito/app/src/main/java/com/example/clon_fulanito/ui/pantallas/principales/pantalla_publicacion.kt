@@ -21,7 +21,7 @@ fun PantallaDePublicacion(modifier: Modifier, vm_fulanito: FulanitoViewModel){
     val publicacion by vm_fulanito.publicacion_seleccionada.observeAsState(null)
 
     if(publicacion != null){
-        Column{
+        Column(modifier = modifier){
             Text("Titulo: ${publicacion!!.title})")
             Text("${publicacion!!.body}")
 
