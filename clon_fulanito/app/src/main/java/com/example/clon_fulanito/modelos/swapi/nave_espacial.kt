@@ -14,8 +14,8 @@ data class NaveEspacial(
     val hyperdrive_rating: String,
     val MGLT: String,
     val starship_class: String,
-    val pilots: List<Int>, //Lista de personas que han usado la nave como pilotos
-    val films: List<Int>, //Lista de peliculas donde aparece
+    val pilots: List<String>, //Lista de personas que han usado la nave como pilotos
+    val films: List<String>, //Lista de peliculas donde aparece
     val created: String,
     val edited: String,
     val url: String

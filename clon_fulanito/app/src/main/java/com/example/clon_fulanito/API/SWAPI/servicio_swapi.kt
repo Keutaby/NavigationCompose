@@ -4,7 +4,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object InstanciaRetrofitSWAPI{
-    private const val url_base = "https://swapi.dev/api"
+    private const val url_base = "https://swapi.dev/api/"
 
     private val servicio: Retrofit by lazy {
         Retrofit.Builder()

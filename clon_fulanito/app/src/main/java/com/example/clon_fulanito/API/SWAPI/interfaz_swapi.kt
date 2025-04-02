@@ -6,9 +6,9 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 
 interface SWAPIinterfaz{
-    @GET("/starships") //Mas delante hacemos las modificaciones necesarios
+    @GET("starships") //Mas delante hacemos las modificaciones necesarios
     suspend fun obtener_naves_espaciales(): PaginaContenedora
 
-    @GET("/starships/{id}")
+    @GET("starships/{id}")
     suspend fun obtener_nave(@Path("id") id: Int): NaveEspacial
 }

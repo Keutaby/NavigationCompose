@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.clon_fulanito.ui.pantallas.PantallaNavegadora
 import com.example.clon_fulanito.ui.pantallas.navegacion.controladores.BotonesInferioresNavegacion
 import com.example.clon_fulanito.ui.pantallas.navegacion.controladores.PantallaMenuPrincipal
+import com.example.clon_fulanito.ui.pantallas.principales.star_wars.PantallaNavesEspaciales
 import com.example.clon_fulanito.vista_moddelos.FulanitoViewModel
 
 
@@ -73,7 +74,7 @@ fun MenuPrincipal(modifier: Modifier){
             }
 
             composable(PantallaMenuPrincipal.StarWars.ruta) {
-                Text("Hola pantalla B o Star Wars")
+                PantallaNavesEspaciales(modifier)
             }
 
             composable(PantallaMenuPrincipal.Perfil.ruta) {
