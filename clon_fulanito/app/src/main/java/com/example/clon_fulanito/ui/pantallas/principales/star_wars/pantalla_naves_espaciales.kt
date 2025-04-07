@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -17,13 +19,15 @@ import com.example.clon_fulanito.vista_moddelos.SWAPIModelo
 
 
 @Composable
-fun PantallaNavesEspaciales(modifier: Modifier){
-    val vm_swapi = SWAPIModelo()
+fun PantallaNavesEspaciales(modifier: Modifier, vm_swapi: SWAPIModelo){
+
+
+    Log.v("Rcarga pantalla", "::${vm_swapi}::")
 
     val pagina_actual by vm_swapi.pagina_actual.observeAsState(null)
 
     LaunchedEffect(Unit) {
-        vm_swapi.descargar_pagina()
+        vm_swapi.descargar_pagina(3)
     }
 
     Column(modifier = modifier){
@@ -34,6 +38,7 @@ fun PantallaNavesEspaciales(modifier: Modifier){
             Text("Resultados")
 
             LazyColumn {
+
                 items(pagina_actual!!.results){ nave_espacial ->
                     Text("Nave: ${nave_espacial.name}")
                     Text("Modelo: ${nave_espacial.model}")
@@ -43,12 +48,15 @@ fun PantallaNavesEspaciales(modifier: Modifier){
 
             Row {
                 Text("Pagina siguiente", modifier = Modifier.clickable {
-                        Log.v("STARWARS", "Pagina siguiente de naves")
+                    Log.v("Rcarga funcion", "::${vm_swapi}::")
+                        vm_swapi.pasar_a_siguiente_pagina()
                     }
                 )
 
+                Spacer(modifier = Modifier.fillMaxWidth(0.5f))
+
                 Text("Pagina anterior", modifier = Modifier.clickable {
-                    Log.v("STARWARS", "Pagina anterior de naves")
+                    vm_swapi.pasar_a_anterior_pagina()
                 }
                 )
             }
