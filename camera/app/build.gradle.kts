@@ -61,6 +61,8 @@ dependencies {
 
     //Fin de las depecencias
 
+    implementation("androidx.compose.runtime:runtime:1.6.4")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
