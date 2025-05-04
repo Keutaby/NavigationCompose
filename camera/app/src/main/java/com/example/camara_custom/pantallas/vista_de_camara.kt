@@ -4,49 +4,55 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import android.graphics.Canvas
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Paint
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.runtime.MutableState
-import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.mutableStateOf
+import kotlin.math.min
 
 @Composable
 fun PantallaCamara() {
     val lente_a_usar = CameraSelector.LENS_FACING_BACK
     val ciclo_de_vida_dueño = LocalLifecycleOwner.current
-
     val contexto = LocalContext.current
 
     val prevista = Preview.Builder().build()
@@ -55,165 +61,242 @@ fun PantallaCamara() {
     }
 
     val camarax_selector = CameraSelector.Builder().requireLensFacing(lente_a_usar).build()
-
     val capturador_de_imagen = remember { ImageCapture.Builder().build() }
 
-    //Filtros
-    var seleccion_filtro: MutableState<String> = remember { mutableStateOf("None") } //Seleccion
-    val filtros_escoger = listOf("None", "Grayscale", "Sepia", "Blur") // Filtros
+    var filtro_seleccionado by remember { mutableStateOf("Ninguno") }
+    val filtros_disponibles = listOf("Ninguno", "Desenfoque", "Invertir", "Blanco y Negro", "Contraste")
 
+    var imagen_capturada by remember { mutableStateOf<Bitmap?>(null) }
+    val executor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
+
+    var tomarFotoClick by remember { mutableStateOf(0) }
 
     LaunchedEffect(lente_a_usar) {
         val proveedor_local_camara = contexto.obtenerProveedorDeCamara()
         proveedor_local_camara.unbindAll()
-
         proveedor_local_camara.bindToLifecycle(ciclo_de_vida_dueño, camarax_selector, prevista, capturador_de_imagen)
-
         prevista.setSurfaceProvider(vista_prevista.surfaceProvider)
     }
 
-    Box(contentAlignment = Alignment.BottomCenter){
-        AndroidView(factory = {vista_prevista}, modifier = Modifier.fillMaxSize())
+    LaunchedEffect(tomarFotoClick) {
+        if (tomarFotoClick > 0) {
+            capturador_de_imagen.takePicture(
+                ContextCompat.getMainExecutor(contexto),
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        Log.d("CAPTURA_EXITO", "Imagen capturada")
+                        val bitmap = convertir_image_proxy_a_bitmap(image)
+                        image.close()
+                        val bitmap_filtrado = aplicar_filtro(bitmap, filtro_seleccionado, contexto)
+                        imagen_capturada = bitmap_filtrado
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.e("CAPTURA_ERROR", "Error al capturar la imagen")
+                    }
+                }
+            )
+        }
+    }
+
+    Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
+        AndroidView(factory = { vista_prevista }, modifier = Modifier.fillMaxSize())
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 16.dp)) {
+            var mostrar_menu_filtro by remember { mutableStateOf(false) }
+            Button(onClick = { mostrar_menu_filtro = true }) {
+                Text("Seleccionar Filtro")
+            }
             DropdownMenu(
-                expanded = false,
-                onDismissRequest = {  }
+                expanded = mostrar_menu_filtro,
+                onDismissRequest = { mostrar_menu_filtro = false }
             ) {
-                filtros_escoger.forEach { filtro ->
-                    DropdownMenuItem(text = { Text(filtro) }, onClick = { seleccion_filtro.value = filtro })
+                filtros_disponibles.forEach { filtro ->
+                    DropdownMenuItem(text = { Text(filtro) }, onClick = { filtro_seleccionado = filtro; mostrar_menu_filtro = false })
                 }
             }
-            Text("Filtro seleccionado: ${seleccion_filtro.value}")
-
+            Text("Filtro seleccionado: ${filtro_seleccionado}")
             Spacer(modifier = Modifier.height(8.dp))
-
-            Button(onClick = { tomar_foto(capturador_de_imagen, contexto, seleccion_filtro) }) {
-                Text("Take Photo")
+            Button(onClick = { tomarFotoClick++ }) {
+                Text("Tomar Foto")
             }
         }
 
+        if (imagen_capturada != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Image(bitmap = imagen_capturada!!.asImageBitmap(), contentDescription = "Imagen capturada con filtro")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(onClick = {
+                        imagen_capturada?.let { bitmap ->
+                            guardar_foto(contexto, bitmap, executor, capturador_de_imagen)
+                            imagen_capturada = null
+                        }
+                    }) {
+                        Text("Guardar Foto")
+                    }
+                    Button(onClick = { imagen_capturada = null }) {
+                        Text("Retomar")
+                    }
+                }
+            }
+        }
     }
-
-
 }
 
-private suspend fun Context.obtenerProveedorDeCamara(): ProcessCameraProvider =
-    suspendCoroutine { continuacion ->
-        ProcessCameraProvider.getInstance(this).also { proveedor_camara ->
-            proveedor_camara.addListener({
-                continuacion.resume(proveedor_camara.get())
-            }, ContextCompat.getMainExecutor(this))
+//Filtros
+private fun aplicar_filtro(bitmap: Bitmap, filtroTipo: String, contexto: Context): Bitmap {
+    Log.v("FILTRO", "Aplicando filtro")
+    return when (filtroTipo) {
+        "Desenfoque" -> aplicar_filtro_desenfoque_simple(bitmap, 5)
+        "Invertir" -> aplicar_filtro_invertir(bitmap)
+        "Blanco y Negro" -> aplicar_filtro_blanco_y_negro(bitmap)
+        "Contraste" -> aplicar_filtro_contraste(bitmap, 2f)
+        else -> bitmap
+    }
+}
+
+private fun aplicar_filtro_desenfoque_simple(bitmap: Bitmap, radio: Int): Bitmap {
+    val ancho = bitmap.width
+    val alto = bitmap.height
+    val bitmapDesenfocado = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+    val pixelsOriginal = IntArray(ancho * alto)
+    bitmap.getPixels(pixelsOriginal, 0, ancho, 0, 0, ancho, alto)
+    val pixelsDesenfocados = IntArray(ancho * alto)
+
+    for (y in 0 until alto) {
+        for (x in 0 until ancho) {
+            var rSum = 0
+            var gSum = 0
+            var bSum = 0
+            var count = 0
+
+            for (i in -radio..radio) {
+                for (j in -radio..radio) {
+                    val xPos = min(ancho - 1, kotlin.math.max(0, x + i))
+                    val yPos = min(alto - 1, kotlin.math.max(0, y + j))
+                    val index = yPos * ancho + xPos
+                    val pixel = pixelsOriginal[index]
+                    rSum += (pixel and 0xFF0000) shr 16
+                    gSum += (pixel and 0x00FF00) shr 8
+                    bSum += (pixel and 0x0000FF) shr 0
+                    count++
+                }
+            }
+
+            val avgR = rSum / count
+            val avgG = gSum / count
+            val avgB = bSum / count
+            pixelsDesenfocados[y * ancho + x] = (avgR shl 16) or (avgG shl 8) or avgB or (0xFF shl 24)
         }
     }
 
-private fun tomar_foto(capturador_imagen: ImageCapture, contexto: Context, seleccionFiltro: Any){
-    val nombre_archivo = "CapturaFoto.jpeg"
+    bitmapDesenfocado.setPixels(pixelsDesenfocados, 0, ancho, 0, 0, ancho, alto)
+    return bitmapDesenfocado
+}
 
-    val valores_del_contenido = ContentValues().apply{
-        put(MediaStore.MediaColumns.DISPLAY_NAME, nombre_archivo)
+private fun aplicar_filtro_invertir(bitmap: Bitmap): Bitmap {
+    val ancho = bitmap.width
+    val alto = bitmap.height
+    val bitmap_invertido = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+    val lienzo = Canvas(bitmap_invertido)
+    val pintura = Paint()
+    val matriz_color = ColorMatrix(
+        floatArrayOf(
+            -1f, 0f, 0f, 0f, 255f,
+            0f, -1f, 0f, 0f, 255f,
+            0f, 0f, -1f, 0f, 255f,
+            0f, 0f, 0f, 1f, 0f
+        )
+    )
+    val filtro = ColorMatrixColorFilter(matriz_color)
+    pintura.colorFilter = filtro
+    lienzo.drawBitmap(bitmap, 0f, 0f, pintura)
+    return bitmap_invertido
+}
+
+private fun aplicar_filtro_blanco_y_negro(bitmap: Bitmap): Bitmap {
+    val ancho = bitmap.width
+    val alto = bitmap.height
+    val bitmap_byn = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+    val lienzo = Canvas(bitmap_byn)
+    val pintura = Paint()
+    val matriz_color = ColorMatrix()
+    matriz_color.setSaturation(0f)
+    val filtro = ColorMatrixColorFilter(matriz_color)
+    pintura.colorFilter = filtro
+    lienzo.drawBitmap(bitmap, 0f, 0f, pintura)
+    return bitmap_byn
+}
+
+private fun aplicar_filtro_contraste(bitmap: Bitmap, contraste: Float): Bitmap {
+    val ancho = bitmap.width
+    val alto = bitmap.height
+    val bitmap_contraste = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+    val lienzo = Canvas(bitmap_contraste)
+    val pintura = Paint()
+    val matriz_color = ColorMatrix(
+        floatArrayOf(
+            contraste, 0f, 0f, 0f, 0f,
+            0f, contraste, 0f, 0f, 0f,
+            0f, 0f, contraste, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        )
+    )
+    val filtro = ColorMatrixColorFilter(matriz_color)
+    pintura.colorFilter = filtro
+    lienzo.drawBitmap(bitmap, 0f, 0f, pintura)
+    return bitmap_contraste
+}
+
+private fun convertir_image_proxy_a_bitmap(image: ImageProxy): Bitmap {
+    val buffer = image.planes[0].buffer
+    buffer.rewind()
+    val bytes = ByteArray(buffer.capacity())
+    buffer.get(bytes)
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+}
+
+private fun guardar_foto(
+    contexto: Context,
+    bitmap: Bitmap,
+    executor: ExecutorService,
+    capturadorImagen: ImageCapture
+) {
+    val nombreArchivo = "nuestra_app.jpeg"
+    val valoresContenido = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, nombreArchivo)
         put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/nuestra_app")
         }
     }
 
-    val salida_foto = ImageCapture.OutputFileOptions.Builder(
+    val outputOptions = ImageCapture.OutputFileOptions.Builder(
         contexto.contentResolver,
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,//direccion de una locacion especifico que no es de archivo url
-        valores_del_contenido
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, //direccion de una locacion especifico que no es de archivo url
+        valoresContenido
     ).build()
 
-    capturador_imagen.takePicture(
-        salida_foto,
-        ContextCompat.getMainExecutor(contexto),
-        object: ImageCapture.OnImageSavedCallback{
+    capturadorImagen.takePicture(
+        outputOptions,
+        executor,
+        object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                outputFileResults.savedUri?.let { uri ->
-                    Log.v("CAPTURA_EXITO", "Exito no ha pasado nada")
-                    aplicarFiltro(contexto, uri, seleccionFiltro.toString())
-                }
+                Log.d("GUARDAR_EXITO", "Foto filtrada guardada")
             }
+
             override fun onError(exception: ImageCaptureException) {
-                Log.v("CAPTURA_ERROR", "Se identifico el siguiente error: ${exception.message}")
+                Log.e("GUARDAR_ERROR", "Error al guardar la foto filtrada")
             }
         }
     )
 }
 
-//Filtros
-fun aplicarFiltro(context: Context, imageUri: android.net.Uri, filterType: String){
-    Log.v("FILTRO", "Aplicando filtro")
-
-    try {
-        val inputStream = context.contentResolver.openInputStream(imageUri)
-        val originalBitmap = BitmapFactory.decodeStream(inputStream)
-        inputStream?.close()
-
-        if (originalBitmap != null) {
-            val filteredBitmap = when (filterType) {
-                "Grayscale" -> applyGrayscaleFilter(originalBitmap)
-                "Sepia" -> applySepiaFilter(originalBitmap)
-                "Blur" -> applyBlurFilter(context, originalBitmap) // You'll need to implement this
-                else -> originalBitmap // No filter
-            }
-
-
-            val outputStream = context.contentResolver.openOutputStream(imageUri)
-            if (outputStream != null) {
-                filteredBitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
-            }
-            outputStream?.close()
-
-            Log.d("FILTRO", "Filtro aplicado y guardado")
-        } else {
-            Log.e("FILTRO", "Error no se puede agregar el filtro")
+private suspend fun Context.obtenerProveedorDeCamara(): ProcessCameraProvider =
+    suspendCoroutine { continuacion ->
+        ProcessCameraProvider.getInstance(this).also { proveedor_local_camara ->
+            proveedor_local_camara.addListener({
+                continuacion.resume(proveedor_local_camara.get())
+            }, ContextCompat.getMainExecutor(this))
         }
-    } catch (e: Exception) {
-        Log.e("FILTRO", "Error applying filter", e)
     }
-}
-
-//Filtro 1
-fun applyGrayscaleFilter(bitmap: Bitmap): Bitmap {
-    val width = bitmap.width
-    val height = bitmap.height
-    val grayscaleBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(grayscaleBitmap)
-    val paint = Paint()
-    val colorMatrix = ColorMatrix()
-    colorMatrix.setSaturation(0f)
-    val filter = ColorMatrixColorFilter(colorMatrix)
-    paint.colorFilter = filter
-    canvas.drawBitmap(bitmap, 0f, 0f, paint)
-    return grayscaleBitmap
-}
-
-//Filtro 2
-fun applySepiaFilter(bitmap: Bitmap): Bitmap {
-    val width = bitmap.width
-    val height = bitmap.height
-    val sepiaBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(sepiaBitmap)
-    val paint = Paint()
-    val colorMatrix = ColorMatrix()
-    colorMatrix.set(
-        floatArrayOf(
-            0.393f, 0.769f, 0.189f, 0f, 0f,
-            0.349f, 0.686f, 0.168f, 0f, 0f,
-            0.272f, 0.534f, 0.131f, 0f, 0f,
-            0f, 0f, 0f, 1f, 0f
-        )
-    )
-    val filter = ColorMatrixColorFilter(colorMatrix)
-    paint.colorFilter = filter
-    canvas.drawBitmap(bitmap, 0f, 0f, paint)
-    return sepiaBitmap
-}
-
-//Filtro 3
-fun applyBlurFilter(context: Context, bitmap: Bitmap): Bitmap {
-    // Implement your blur filter logic here (e.g., using RenderScript or a library)
-    Log.w("FILTRO", "Blur filter not yet implemented")
-    return bitmap
-}
