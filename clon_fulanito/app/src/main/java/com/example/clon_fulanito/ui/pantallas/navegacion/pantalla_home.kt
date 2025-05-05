@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.clon_fulanito.ui.pantallas.PantallaNavegadora
+import com.example.clon_fulanito.ui.pantallas.PantallaPerfil
 import com.example.clon_fulanito.ui.pantallas.navegacion.controladores.BotonesInferioresNavegacion
 import com.example.clon_fulanito.ui.pantallas.navegacion.controladores.PantallaMenuPrincipal
 import com.example.clon_fulanito.ui.pantallas.principales.star_wars.PantallaNavesEspaciales
@@ -79,7 +80,8 @@ fun MenuPrincipal(modifier: Modifier){
             }
 
             composable(PantallaMenuPrincipal.Perfil.ruta) {
-                Text("Hola pantalla C o Perfil")
+                //Text("Hola de Perfil")
+                PantallaPerfil(modifier = Modifier.fillMaxSize())
             }
         }
 
