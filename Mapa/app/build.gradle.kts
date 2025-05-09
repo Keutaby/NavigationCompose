@@ -44,6 +44,12 @@ dependencies {
     //https://github.com/osmdroid/osmdroid
     implementation("org.osmdroid:osmdroid-android:6.1.14")
 
+    //Libreria para usar el GPS del celular
+    implementation(libs.play.services.location)
+
+    //Para jalar el observeAsState
+    implementation("androidx.compose.runtime:runtime-livedata:1.8.1")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -52,6 +58,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
